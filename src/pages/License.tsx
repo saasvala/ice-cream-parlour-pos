@@ -68,6 +68,14 @@ export default function License() {
           >
             {activating ? 'Activating...' : 'Activate'}
           </Button>
+
+          <Button
+            variant="ghost"
+            onClick={() => { activate(); navigate('/login'); }}
+            className="w-full text-sm text-muted-foreground hover:text-primary"
+          >
+            Skip for now →
+          </Button>
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-6">
