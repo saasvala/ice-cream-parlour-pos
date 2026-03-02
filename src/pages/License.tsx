@@ -13,8 +13,8 @@ export default function License() {
   const [activating, setActivating] = useState(false);
 
   const handleActivate = () => {
-    if (key.trim().length < 4) {
-      setError('Please enter a valid license key');
+    if (key.trim() !== '1234') {
+      setError('Invalid license key');
       return;
     }
     setActivating(true);
