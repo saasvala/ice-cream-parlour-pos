@@ -115,8 +115,8 @@ export function useAuth() {
   const [isLicensed, setIsLicensed] = useState(() => getLS('pos_licensed', false));
   useEffect(() => setLS('pos_logged_in', isLoggedIn), [isLoggedIn]);
   useEffect(() => setLS('pos_licensed', isLicensed), [isLicensed]);
-  const login = useCallback(() => setIsLoggedIn(true), []);
-  const logout = useCallback(() => setIsLoggedIn(false), []);
-  const activate = useCallback(() => setIsLicensed(true), []);
+  const login = useCallback(() => { setIsLoggedIn(true); setLS('pos_logged_in', true); }, []);
+  const logout = useCallback(() => { setIsLoggedIn(false); setLS('pos_logged_in', false); }, []);
+  const activate = useCallback(() => { setIsLicensed(true); setLS('pos_licensed', true); }, []);
   return { isLoggedIn, isLicensed, login, logout, activate };
 }
