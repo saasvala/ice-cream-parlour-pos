@@ -9,13 +9,13 @@ import { toast } from 'sonner';
 
 export default function Purchase() {
   const { purchases, add, remove } = usePurchases();
-  const { products } = useProducts();
+  const { products, addStock } = useProducts();
   const { suppliers } = useSuppliers();
   const [showForm, setShowForm] = useState(false);
   const [supplierId, setSupplierId] = useState('');
   const [items, setItems] = useState<PurchaseItem[]>([]);
 
-  const addItem = () => setItems(prev => [...prev, { productId: products[0]?.id || '', productName: products[0]?.name || '', qty: 1, cost: 0 }]);
+  const addItem = () => setItems(prev => [...prev, { productId: products[0]?.id || '', productName: products[0]?.name || '', qty: 1, cost: products[0]?.purchasePrice || 0 }]);
 
   const updateItem = (idx: number, field: string, value: any) => {
     setItems(prev => prev.map((item, i) => {
@@ -32,6 +32,12 @@ export default function Purchase() {
     if (!supplierId) { toast.error('Select a supplier'); return; }
     if (items.length === 0) { toast.error('Add at least one item'); return; }
     const supplier = suppliers.find(s => s.id === supplierId);
+    
+    // Add stock for each purchased item
+    items.forEach(item => {
+      addStock(item.productId, item.qty);
+    });
+    
     add({
       supplierId,
       supplierName: supplier?.name || 'Unknown',
@@ -39,9 +45,10 @@ export default function Purchase() {
       total: items.reduce((s, i) => s + i.qty * i.cost, 0),
       date: new Date().toISOString(),
     });
-    toast.success('Purchase saved');
+    toast.success('Purchase saved & stock updated! 📦');
     setShowForm(false);
     setItems([]);
+    setSupplierId('');
   };
 
   return (

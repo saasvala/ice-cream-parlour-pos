@@ -1,25 +1,30 @@
 import { useState } from 'react';
-import { useProducts, useCategories, useOrders, useSettings } from '@/store/useStore';
+import { useProducts, useCategories, useOrders, useSettings, useCustomers } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Minus, X, ShoppingBag, CreditCard, Banknote, Smartphone, Printer, Save, Trash2 } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, CreditCard, Banknote, Smartphone, Printer, Save, Trash2, User } from 'lucide-react';
 import type { OrderItem } from '@/types/pos';
 import { toast } from 'sonner';
+import ReceiptPreview from '@/components/ReceiptPreview';
 
 const TOPPINGS = ['Sprinkles', 'Chocolate Sauce', 'Caramel', 'Nuts', 'Whipped Cream', 'Cherry'];
 
 export default function NewSale() {
-  const { products } = useProducts();
+  const { products, deductStock } = useProducts();
   const { categories } = useCategories();
   const { add: addOrder } = useOrders();
   const { settings } = useSettings();
+  const { customers } = useCustomers();
   
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [discount, setDiscount] = useState(0);
   const [paymentMode, setPaymentMode] = useState<'cash' | 'card' | 'upi'>('cash');
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState('');
 
   const filteredProducts = products.filter(p => p.category === activeCategory);
   
@@ -30,6 +35,7 @@ export default function NewSale() {
   const addToCart = (productId: string, scoops: number) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
+    if (product.stockQty <= 0) { toast.error('Out of stock!'); return; }
     
     const existing = cart.findIndex(i => i.productId === productId);
     if (existing >= 0) {
@@ -56,23 +62,53 @@ export default function NewSale() {
 
   const handleSave = () => {
     if (cart.length === 0) { toast.error('Add items to cart first'); return; }
-    addOrder({
+    
+    // Deduct stock for each item
+    cart.forEach(item => {
+      deductStock(item.productId, item.qty);
+    });
+    
+    const order = addOrder({
       items: cart,
       subtotal,
       discount,
       tax: taxAmount,
       total,
       paymentMode,
+      customerId: selectedCustomer || undefined,
       date: new Date().toISOString(),
       status: 'completed',
     });
+    
+    setLastOrderId(order.id);
     toast.success('Order saved successfully! 🍦');
+    setShowReceipt(true);
+  };
+
+  const handleNewOrder = () => {
     setCart([]);
     setDiscount(0);
+    setSelectedCustomer('');
+    setShowReceipt(false);
   };
+
+  const customerName = customers.find(c => c.id === selectedCustomer)?.name;
 
   return (
     <Layout title="New Sale" showBack>
+      {/* Customer Selection */}
+      <div className="glass-card p-3 mb-4 flex items-center gap-2">
+        <User size={16} className="text-muted-foreground flex-shrink-0" />
+        <select
+          value={selectedCustomer}
+          onChange={e => setSelectedCustomer(e.target.value)}
+          className="flex-1 h-8 rounded-lg bg-transparent border-0 text-sm focus:outline-none"
+        >
+          <option value="">Walk-in Customer</option>
+          {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>)}
+        </select>
+      </div>
+
       {/* Category Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1 scrollbar-hide">
         {categories.map(cat => (
@@ -98,13 +134,17 @@ export default function NewSale() {
             onClick={() => setSelectedProduct(selectedProduct === product.id ? null : product.id)}
             className={`glass-card-hover p-3 text-left active:scale-95 transition-transform ${
               selectedProduct === product.id ? 'ring-2 ring-primary' : ''
-            }`}
+            } ${product.stockQty <= 0 ? 'opacity-50' : ''}`}
           >
             <div className="text-3xl mb-2">🍦</div>
             <p className="font-bold text-sm truncate">{product.name}</p>
-            <p className="text-primary font-bold">₹{product.sellingPrice}</p>
-            {product.stockQty <= product.lowStockAlert && (
+            <p className="text-primary font-bold">{settings.currency}{product.sellingPrice}</p>
+            <p className="text-[10px] text-muted-foreground">Stock: {product.stockQty}</p>
+            {product.stockQty <= product.lowStockAlert && product.stockQty > 0 && (
               <span className="text-[10px] text-destructive font-medium">Low Stock</span>
+            )}
+            {product.stockQty <= 0 && (
+              <span className="text-[10px] text-destructive font-bold">Out of Stock</span>
             )}
           </button>
         ))}
@@ -145,7 +185,7 @@ export default function NewSale() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <p className="font-semibold text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.scoops} scoop(s) · ₹{item.price}</p>
+                    <p className="text-xs text-muted-foreground">{item.scoops} scoop(s) · {settings.currency}{item.price}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => updateQty(idx, -1)} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
@@ -185,7 +225,7 @@ export default function NewSale() {
           <div className="border-t border-border/50 mt-4 pt-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>₹{subtotal}</span>
+              <span>{settings.currency}{subtotal}</span>
             </div>
             <div className="flex justify-between text-sm items-center">
               <span className="text-muted-foreground">Discount</span>
@@ -199,11 +239,11 @@ export default function NewSale() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tax ({settings.taxRate}%)</span>
-              <span>₹{taxAmount.toFixed(2)}</span>
+              <span>{settings.currency}{taxAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xl font-bold font-fredoka pt-2 border-t border-border/50">
               <span>Total</span>
-              <span className="text-gradient-ice">₹{total.toFixed(2)}</span>
+              <span className="text-gradient-ice">{settings.currency}{total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -237,7 +277,10 @@ export default function NewSale() {
             <Button onClick={handleSave} className="flex-1 h-12 rounded-xl font-bold shadow-lg shadow-primary/25">
               <Save size={18} className="mr-1" /> Save Order
             </Button>
-            <Button variant="outline" className="h-12 rounded-xl" onClick={() => toast.info('Receipt printed! 🧾')}>
+            <Button variant="outline" className="h-12 rounded-xl" onClick={() => {
+              if (cart.length === 0) { toast.error('Add items first'); return; }
+              setShowReceipt(true);
+            }}>
               <Printer size={18} />
             </Button>
           </div>
@@ -245,6 +288,21 @@ export default function NewSale() {
       )}
 
       <div className="h-20" />
+
+      {/* Receipt Preview Modal */}
+      <ReceiptPreview
+        open={showReceipt}
+        onClose={handleNewOrder}
+        items={cart.length > 0 ? cart : []}
+        subtotal={subtotal}
+        discount={discount}
+        tax={taxAmount}
+        total={total}
+        paymentMode={paymentMode}
+        settings={settings}
+        orderId={lastOrderId}
+        customerName={customerName}
+      />
     </Layout>
   );
 }

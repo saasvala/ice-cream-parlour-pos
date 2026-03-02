@@ -35,6 +35,65 @@ const defaultProducts: Product[] = [
   { id: '10', name: 'Waffle Cone', category: '4', purchasePrice: 25, sellingPrice: 50, stockQty: 60, variants: ['Small', 'Large'], lowStockAlert: 15, image: '' },
 ];
 
+const defaultCustomers: Customer[] = [
+  { id: 'c1', name: 'Rahul Sharma', phone: '+91 98765 43210', email: 'rahul@email.com' },
+  { id: 'c2', name: 'Priya Patel', phone: '+91 87654 32109', email: 'priya@email.com' },
+  { id: 'c3', name: 'Amit Kumar', phone: '+91 76543 21098', email: '' },
+  { id: 'c4', name: 'Sneha Gupta', phone: '+91 65432 10987', email: 'sneha@email.com' },
+  { id: 'c5', name: 'Vikram Singh', phone: '+91 54321 09876', email: '' },
+];
+
+const defaultSuppliers: Supplier[] = [
+  { id: 's1', name: 'Amul Dairy', phone: '+91 98001 12233', email: 'supply@amul.com', company: 'Amul India' },
+  { id: 's2', name: 'Mother Dairy', phone: '+91 97002 23344', email: 'orders@motherdairy.com', company: 'Mother Dairy' },
+  { id: 's3', name: 'Kwality Walls', phone: '+91 96003 34455', email: 'kwality@hul.com', company: 'HUL' },
+];
+
+// Generate demo orders for last 7 days
+function generateDemoOrders(): Order[] {
+  const orders: Order[] = [];
+  const now = new Date();
+  for (let day = 0; day < 7; day++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - day);
+    const numOrders = Math.floor(Math.random() * 4) + 2;
+    for (let i = 0; i < numOrders; i++) {
+      const items = [];
+      const numItems = Math.floor(Math.random() * 3) + 1;
+      for (let j = 0; j < numItems; j++) {
+        const prod = defaultProducts[Math.floor(Math.random() * defaultProducts.length)];
+        items.push({
+          productId: prod.id,
+          name: prod.name,
+          qty: Math.floor(Math.random() * 3) + 1,
+          scoops: Math.floor(Math.random() * 2) + 1,
+          toppings: ['Sprinkles', 'Chocolate Sauce'].slice(0, Math.floor(Math.random() * 3)),
+          price: prod.sellingPrice,
+        });
+      }
+      const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+      const discount = Math.random() > 0.7 ? Math.floor(Math.random() * 20) + 5 : 0;
+      const tax = subtotal * 0.05;
+      const total = subtotal + tax - discount;
+      const custId = defaultCustomers[Math.floor(Math.random() * defaultCustomers.length)].id;
+      d.setHours(Math.floor(Math.random() * 10) + 9, Math.floor(Math.random() * 60));
+      orders.push({
+        id: uid(),
+        items,
+        subtotal,
+        discount,
+        tax,
+        total,
+        paymentMode: (['cash', 'card', 'upi'] as const)[Math.floor(Math.random() * 3)],
+        customerId: custId,
+        date: d.toISOString(),
+        status: 'completed',
+      });
+    }
+  }
+  return orders;
+}
+
 const defaultSettings: StoreSettings = {
   storeName: 'Frosty Scoops',
   storePhone: '+91 98765 43210',
@@ -50,7 +109,13 @@ export function useProducts() {
   const add = useCallback((p: Omit<Product, 'id'>) => setProducts(prev => [...prev, { ...p, id: uid() }]), []);
   const update = useCallback((p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x)), []);
   const remove = useCallback((id: string) => setProducts(prev => prev.filter(x => x.id !== id)), []);
-  return { products, add, update, remove, setProducts };
+  const deductStock = useCallback((productId: string, qty: number) => {
+    setProducts(prev => prev.map(x => x.id === productId ? { ...x, stockQty: Math.max(0, x.stockQty - qty) } : x));
+  }, []);
+  const addStock = useCallback((productId: string, qty: number) => {
+    setProducts(prev => prev.map(x => x.id === productId ? { ...x, stockQty: x.stockQty + qty } : x));
+  }, []);
+  return { products, add, update, remove, setProducts, deductStock, addStock };
 }
 
 export function useCategories() {
@@ -63,7 +128,7 @@ export function useCategories() {
 }
 
 export function useCustomers() {
-  const [customers, setCustomers] = useState<Customer[]>(() => getLS('pos_customers', []));
+  const [customers, setCustomers] = useState<Customer[]>(() => getLS('pos_customers', defaultCustomers));
   useEffect(() => setLS('pos_customers', customers), [customers]);
   const add = useCallback((c: Omit<Customer, 'id'>) => setCustomers(prev => [...prev, { ...c, id: uid() }]), []);
   const update = useCallback((c: Customer) => setCustomers(prev => prev.map(x => x.id === c.id ? c : x)), []);
@@ -72,7 +137,7 @@ export function useCustomers() {
 }
 
 export function useSuppliers() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() => getLS('pos_suppliers', []));
+  const [suppliers, setSuppliers] = useState<Supplier[]>(() => getLS('pos_suppliers', defaultSuppliers));
   useEffect(() => setLS('pos_suppliers', suppliers), [suppliers]);
   const add = useCallback((s: Omit<Supplier, 'id'>) => setSuppliers(prev => [...prev, { ...s, id: uid() }]), []);
   const update = useCallback((s: Supplier) => setSuppliers(prev => prev.map(x => x.id === s.id ? s : x)), []);
@@ -81,7 +146,7 @@ export function useSuppliers() {
 }
 
 export function useOrders() {
-  const [orders, setOrders] = useState<Order[]>(() => getLS('pos_orders', []));
+  const [orders, setOrders] = useState<Order[]>(() => getLS('pos_orders', generateDemoOrders()));
   useEffect(() => setLS('pos_orders', orders), [orders]);
   const add = useCallback((o: Omit<Order, 'id'>) => { const order = { ...o, id: uid() }; setOrders(prev => [...prev, order]); return order; }, []);
   const update = useCallback((o: Order) => setOrders(prev => prev.map(x => x.id === o.id ? o : x)), []);
