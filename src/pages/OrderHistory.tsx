@@ -165,7 +165,7 @@ export default function OrderHistory() {
       </div>
 
       {/* Summary */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-3 mb-3">
         <Card className="flex-1 p-3 text-center bg-card/60 backdrop-blur">
           <p className="text-2xl font-bold font-fredoka text-primary">{orders.length}</p>
           <p className="text-[10px] text-muted-foreground">Total Orders</p>
@@ -176,6 +176,40 @@ export default function OrderHistory() {
           </p>
           <p className="text-[10px] text-muted-foreground">Total Revenue</p>
         </Card>
+      </div>
+
+      {/* Export Buttons */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 rounded-xl h-9 text-xs bg-card/60 backdrop-blur border-border/50"
+          onClick={() => {
+            const filterLabel = [
+              startDate ? `From ${format(startDate, 'MMM d')}` : '',
+              endDate ? `To ${format(endDate, 'MMM d')}` : '',
+              paymentFilter !== 'all' ? `Payment: ${paymentFilter.toUpperCase()}` : '',
+            ].filter(Boolean).join(' · ') || 'All Orders';
+            exportOrdersToCSV(filtered, getCustomerName, settings);
+          }}
+        >
+          <Download size={14} className="mr-1.5" /> Export CSV
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 rounded-xl h-9 text-xs bg-card/60 backdrop-blur border-border/50"
+          onClick={() => {
+            const filterLabel = [
+              startDate ? `From ${format(startDate, 'MMM d')}` : '',
+              endDate ? `To ${format(endDate, 'MMM d')}` : '',
+              paymentFilter !== 'all' ? `Payment: ${paymentFilter.toUpperCase()}` : '',
+            ].filter(Boolean).join(' · ') || 'All Orders';
+            exportOrdersToPDF(filtered, getCustomerName, settings, filterLabel);
+          }}
+        >
+          <FileText size={14} className="mr-1.5" /> Export PDF
+        </Button>
       </div>
 
       {/* Orders List */}
