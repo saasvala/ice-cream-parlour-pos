@@ -5,8 +5,11 @@ import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Printer, ChevronDown, ChevronUp, Receipt } from 'lucide-react';
+import { Search, Printer, ChevronDown, ChevronUp, Receipt, Calendar, X } from 'lucide-react';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import ReceiptPreview from '@/components/ReceiptPreview';
+import { format } from 'date-fns';
 import type { Order } from '@/types/pos';
 
 export default function OrderHistory() {
@@ -15,6 +18,9 @@ export default function OrderHistory() {
   const { customers } = useCustomers();
   const { settings } = useSettings();
   const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'card' | 'upi'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
 
@@ -24,13 +30,24 @@ export default function OrderHistory() {
 
   const filtered = sorted.filter(o => {
     const q = search.toLowerCase();
-    if (!q) return true;
     const cust = customers.find(c => c.id === o.customerId);
-    return (
+    
+    // Search filter
+    const matchesSearch = !q || (
       o.id.toLowerCase().includes(q) ||
       cust?.name.toLowerCase().includes(q) ||
       o.items.some(it => it.name.toLowerCase().includes(q))
     );
+    
+    // Date range filter
+    const orderDate = new Date(o.date);
+    const matchesDateRange = (!startDate || orderDate >= startDate) && 
+                            (!endDate || orderDate <= endDate);
+    
+    // Payment method filter
+    const matchesPayment = paymentFilter === 'all' || o.paymentMode === paymentFilter;
+    
+    return matchesSearch && matchesDateRange && matchesPayment;
   });
 
   const getCustomerName = (id?: string) => {
@@ -50,15 +67,100 @@ export default function OrderHistory() {
 
   return (
     <Layout title="Order History" showBack>
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search by order ID, customer, or item..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 rounded-xl bg-card/60 backdrop-blur border-border/50"
-        />
+      {/* Search and Filters */}
+      <div className="space-y-3 mb-4">
+        {/* Search */}
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by order ID, customer, or item..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 rounded-xl bg-card/60 backdrop-blur border-border/50"
+          />
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex gap-2 flex-wrap">
+          {/* Date Range */}
+          <div className="flex gap-2 items-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs rounded-xl bg-card/60 backdrop-blur border-border/50 h-9"
+                >
+                  <Calendar size={14} className="mr-1.5" />
+                  {startDate ? format(startDate, 'MMM d') : 'From'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs rounded-xl bg-card/60 backdrop-blur border-border/50 h-9"
+                >
+                  {endDate ? format(endDate, 'MMM d') : 'To'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {(startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-2"
+                onClick={() => {
+                  setStartDate(undefined);
+                  setEndDate(undefined);
+                }}
+              >
+                <X size={14} />
+              </Button>
+            )}
+          </div>
+
+          {/* Payment Method Filter */}
+          <div className="flex gap-1.5">
+            {(['all', 'cash', 'card', 'upi'] as const).map(method => (
+              <Button
+                key={method}
+                size="sm"
+                variant={paymentFilter === method ? 'default' : 'outline'}
+                className={`text-xs rounded-xl h-9 capitalize ${
+                  paymentFilter === method
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card/60 backdrop-blur border-border/50'
+                }`}
+                onClick={() => setPaymentFilter(method)}
+              >
+                {method}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Summary */}
