@@ -70,7 +70,12 @@ export default function Reports() {
 
         <TabsContent value="flavor">
           <div className="glass-card p-4">
-            <h3 className="font-bold font-fredoka mb-3">Flavor-wise Sales</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold font-fredoka">Flavor-wise Sales</h3>
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV(flavorData.map(f => ({ label: f.name, value: f.sold })), 'Flavor_Sales', settings.storeName)
+              }><Download size={12} className="mr-1" />CSV</Button>
+            </div>
             {flavorData.some(f => f.sold > 0) ? (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
