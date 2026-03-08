@@ -80,6 +80,13 @@ export default function Inventory() {
         </TabsContent>
 
         <TabsContent value="low">
+          {lowStock.length > 0 && (
+            <div className="flex justify-end mb-3">
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV(lowStock.map(p => ({ label: p.name, value: `Stock: ${p.stockQty} (Alert: ${p.lowStockAlert})` })), 'Low_Stock_Alert', storeName)
+              }><Download size={12} className="mr-1" />Export CSV</Button>
+            </div>
+          )}
           {lowStock.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">✅ All items well stocked</div>
           ) : (
