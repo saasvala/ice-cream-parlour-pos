@@ -12,7 +12,6 @@ export default function Inventory() {
   const { products, update: updateProduct } = useProducts();
   const { adjustments, add: addAdjustment } = useStockAdjustments();
   const storeName = 'Frosty Scoops';
-  const { adjustments, add: addAdjustment } = useStockAdjustments();
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjProduct, setAdjProduct] = useState(products[0]?.id || '');
   const [adjType, setAdjType] = useState<'add' | 'remove' | 'return'>('add');
