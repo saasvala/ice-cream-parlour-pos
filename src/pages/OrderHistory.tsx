@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Printer, ChevronDown, ChevronUp, Receipt, Calendar, X } from 'lucide-react';
+import { Search, Printer, ChevronDown, ChevronUp, Receipt, Calendar, X, Download, FileText } from 'lucide-react';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import ReceiptPreview from '@/components/ReceiptPreview';
