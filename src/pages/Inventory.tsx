@@ -53,6 +53,11 @@ export default function Inventory() {
         </TabsList>
 
         <TabsContent value="stock">
+          <div className="flex justify-end mb-3">
+            <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+              exportReportToCSV(products.map(p => ({ label: p.name, value: `Stock: ${p.stockQty} | Alert: ${p.lowStockAlert}` })), 'Stock_Levels', storeName)
+            }><Download size={12} className="mr-1" />Export CSV</Button>
+          </div>
           <div className="space-y-2">
             {products.map(p => (
               <div key={p.id} className="glass-card p-3 flex items-center gap-3">
