@@ -4,8 +4,9 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { AlertTriangle, Package, RotateCcw, Plus, X } from 'lucide-react';
+import { AlertTriangle, Package, RotateCcw, Plus, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportReportToCSV } from '@/lib/exportUtils';
 
 export default function Inventory() {
   const { products, update: updateProduct } = useProducts();
