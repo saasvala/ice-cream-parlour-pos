@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import ReceiptPreview from '@/components/ReceiptPreview';
 import { format } from 'date-fns';
 import type { Order } from '@/types/pos';
+import { exportOrdersToCSV, exportOrdersToPDF } from '@/lib/exportUtils';
 
 export default function OrderHistory() {
   const { isLoggedIn } = useAuth();
