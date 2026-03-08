@@ -37,6 +37,7 @@ export default function Dashboard() {
     { label: 'Purchase', icon: Package, path: '/purchase', emoji: '📦' },
     { label: 'Inventory', icon: Package, path: '/inventory', emoji: '📊' },
     { label: 'Reports', icon: BarChart3, path: '/reports', emoji: '📈' },
+    { label: 'Orders', icon: Clock, path: '/orders', emoji: '📋' },
     { label: 'Settings', icon: Settings, path: '/settings', emoji: '⚙️' },
   ];
 
