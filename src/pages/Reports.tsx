@@ -109,6 +109,15 @@ export default function Reports() {
 
         <TabsContent value="profit">
           <div className="space-y-3">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV([
+                  { label: 'Total Revenue', value: `${settings.currency}${totalRevenue.toFixed(0)}` },
+                  { label: 'Total Cost', value: `${settings.currency}${totalCost.toFixed(0)}` },
+                  { label: 'Net Profit', value: `${settings.currency}${profit.toFixed(0)}` },
+                ], 'Profit_Report', settings.storeName)
+              }><Download size={12} className="mr-1" />CSV</Button>
+            </div>
             <div className="glass-card p-4 text-center">
               <p className="text-sm text-muted-foreground">Total Revenue</p>
               <p className="text-3xl font-bold font-fredoka text-gradient-ice">{settings.currency}{totalRevenue.toFixed(0)}</p>
