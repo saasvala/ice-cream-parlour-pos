@@ -18,6 +18,9 @@ export default function OrderHistory() {
   const { customers } = useCustomers();
   const { settings } = useSettings();
   const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'card' | 'upi'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
 
