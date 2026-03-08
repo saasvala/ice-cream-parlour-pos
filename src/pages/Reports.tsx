@@ -1,8 +1,10 @@
 import { useOrders, useProducts, useSettings } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
+import { exportReportToCSV } from '@/lib/exportUtils';
 const COLORS = ['hsl(200,80%,55%)', 'hsl(340,60%,65%)', 'hsl(45,90%,65%)', 'hsl(270,50%,70%)', 'hsl(160,50%,60%)', 'hsl(20,80%,70%)'];
 
 export default function Reports() {
