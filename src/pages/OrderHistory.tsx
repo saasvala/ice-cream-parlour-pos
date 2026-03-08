@@ -67,15 +67,100 @@ export default function OrderHistory() {
 
   return (
     <Layout title="Order History" showBack>
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search by order ID, customer, or item..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 rounded-xl bg-card/60 backdrop-blur border-border/50"
-        />
+      {/* Search and Filters */}
+      <div className="space-y-3 mb-4">
+        {/* Search */}
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by order ID, customer, or item..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 rounded-xl bg-card/60 backdrop-blur border-border/50"
+          />
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex gap-2 flex-wrap">
+          {/* Date Range */}
+          <div className="flex gap-2 items-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs rounded-xl bg-card/60 backdrop-blur border-border/50 h-9"
+                >
+                  <Calendar size={14} className="mr-1.5" />
+                  {startDate ? format(startDate, 'MMM d') : 'From'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs rounded-xl bg-card/60 backdrop-blur border-border/50 h-9"
+                >
+                  {endDate ? format(endDate, 'MMM d') : 'To'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {(startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-2"
+                onClick={() => {
+                  setStartDate(undefined);
+                  setEndDate(undefined);
+                }}
+              >
+                <X size={14} />
+              </Button>
+            )}
+          </div>
+
+          {/* Payment Method Filter */}
+          <div className="flex gap-1.5">
+            {(['all', 'cash', 'card', 'upi'] as const).map(method => (
+              <Button
+                key={method}
+                size="sm"
+                variant={paymentFilter === method ? 'default' : 'outline'}
+                className={`text-xs rounded-xl h-9 capitalize ${
+                  paymentFilter === method
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card/60 backdrop-blur border-border/50'
+                }`}
+                onClick={() => setPaymentFilter(method)}
+              >
+                {method}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Summary */}
