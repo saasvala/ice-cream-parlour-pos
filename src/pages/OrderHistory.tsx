@@ -30,13 +30,24 @@ export default function OrderHistory() {
 
   const filtered = sorted.filter(o => {
     const q = search.toLowerCase();
-    if (!q) return true;
     const cust = customers.find(c => c.id === o.customerId);
-    return (
+    
+    // Search filter
+    const matchesSearch = !q || (
       o.id.toLowerCase().includes(q) ||
       cust?.name.toLowerCase().includes(q) ||
       o.items.some(it => it.name.toLowerCase().includes(q))
     );
+    
+    // Date range filter
+    const orderDate = new Date(o.date);
+    const matchesDateRange = (!startDate || orderDate >= startDate) && 
+                            (!endDate || orderDate <= endDate);
+    
+    // Payment method filter
+    const matchesPayment = paymentFilter === 'all' || o.paymentMode === paymentFilter;
+    
+    return matchesSearch && matchesDateRange && matchesPayment;
   });
 
   const getCustomerName = (id?: string) => {
