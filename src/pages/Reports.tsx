@@ -1,8 +1,10 @@
 import { useOrders, useProducts, useSettings } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
+import { exportReportToCSV } from '@/lib/exportUtils';
 const COLORS = ['hsl(200,80%,55%)', 'hsl(340,60%,65%)', 'hsl(45,90%,65%)', 'hsl(270,50%,70%)', 'hsl(160,50%,60%)', 'hsl(20,80%,70%)'];
 
 export default function Reports() {
@@ -48,7 +50,12 @@ export default function Reports() {
 
         <TabsContent value="daily">
           <div className="glass-card p-4">
-            <h3 className="font-bold font-fredoka mb-3">Daily Sales (Last 7 Days)</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold font-fredoka">Daily Sales (Last 7 Days)</h3>
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV(dailySales.map(d => ({ label: d.day, value: `${settings.currency}${d.sales.toFixed(0)}` })), 'Daily_Sales', settings.storeName)
+              }><Download size={12} className="mr-1" />CSV</Button>
+            </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={dailySales}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(210,25%,90%)" />
@@ -63,7 +70,12 @@ export default function Reports() {
 
         <TabsContent value="flavor">
           <div className="glass-card p-4">
-            <h3 className="font-bold font-fredoka mb-3">Flavor-wise Sales</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold font-fredoka">Flavor-wise Sales</h3>
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV(flavorData.map(f => ({ label: f.name, value: f.sold })), 'Flavor_Sales', settings.storeName)
+              }><Download size={12} className="mr-1" />CSV</Button>
+            </div>
             {flavorData.some(f => f.sold > 0) ? (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -97,6 +109,15 @@ export default function Reports() {
 
         <TabsContent value="profit">
           <div className="space-y-3">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV([
+                  { label: 'Total Revenue', value: `${settings.currency}${totalRevenue.toFixed(0)}` },
+                  { label: 'Total Cost', value: `${settings.currency}${totalCost.toFixed(0)}` },
+                  { label: 'Net Profit', value: `${settings.currency}${profit.toFixed(0)}` },
+                ], 'Profit_Report', settings.storeName)
+              }><Download size={12} className="mr-1" />CSV</Button>
+            </div>
             <div className="glass-card p-4 text-center">
               <p className="text-sm text-muted-foreground">Total Revenue</p>
               <p className="text-3xl font-bold font-fredoka text-gradient-ice">{settings.currency}{totalRevenue.toFixed(0)}</p>
