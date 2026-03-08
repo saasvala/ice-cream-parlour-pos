@@ -4,12 +4,14 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { AlertTriangle, Package, RotateCcw, Plus, X } from 'lucide-react';
+import { AlertTriangle, Package, RotateCcw, Plus, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportReportToCSV } from '@/lib/exportUtils';
 
 export default function Inventory() {
   const { products, update: updateProduct } = useProducts();
   const { adjustments, add: addAdjustment } = useStockAdjustments();
+  const storeName = 'Frosty Scoops';
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjProduct, setAdjProduct] = useState(products[0]?.id || '');
   const [adjType, setAdjType] = useState<'add' | 'remove' | 'return'>('add');
@@ -50,6 +52,11 @@ export default function Inventory() {
         </TabsList>
 
         <TabsContent value="stock">
+          <div className="flex justify-end mb-3">
+            <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+              exportReportToCSV(products.map(p => ({ label: p.name, value: `Stock: ${p.stockQty} | Alert: ${p.lowStockAlert}` })), 'Stock_Levels', storeName)
+            }><Download size={12} className="mr-1" />Export CSV</Button>
+          </div>
           <div className="space-y-2">
             {products.map(p => (
               <div key={p.id} className="glass-card p-3 flex items-center gap-3">
@@ -72,6 +79,13 @@ export default function Inventory() {
         </TabsContent>
 
         <TabsContent value="low">
+          {lowStock.length > 0 && (
+            <div className="flex justify-end mb-3">
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() =>
+                exportReportToCSV(lowStock.map(p => ({ label: p.name, value: `Stock: ${p.stockQty} (Alert: ${p.lowStockAlert})` })), 'Low_Stock_Alert', storeName)
+              }><Download size={12} className="mr-1" />Export CSV</Button>
+            </div>
+          )}
           {lowStock.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">✅ All items well stocked</div>
           ) : (
