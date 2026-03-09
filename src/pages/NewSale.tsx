@@ -17,6 +17,7 @@ export default function NewSale() {
   const { add: addOrder } = useOrders();
   const { settings } = useSettings();
   const { customers, addLoyaltyPoints, redeemLoyaltyPoints } = useCustomers();
+  const { addEvent } = useLoyaltyHistory();
   
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<OrderItem[]>([]);
