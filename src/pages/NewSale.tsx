@@ -90,11 +90,27 @@ export default function NewSale() {
     if (selectedCustomer) {
       if (redeemPoints > 0) {
         redeemLoyaltyPoints(selectedCustomer, redeemPoints);
+        addEvent({
+          customerId: selectedCustomer,
+          type: 'redeem',
+          points: redeemPoints,
+          description: `Redeemed on order`,
+          date: new Date().toISOString(),
+          tier: customerTier.name,
+        });
       }
-      const earned = Math.floor((total / 100) * POINTS_PER_100);
+      const earned = calcEarnedPoints(total, selectedCust?.totalPointsEarned || 0);
       if (earned > 0) {
         addLoyaltyPoints(selectedCustomer, earned);
-        toast.success(`Earned ${earned} loyalty points! ⭐`);
+        addEvent({
+          customerId: selectedCustomer,
+          type: 'earn',
+          points: earned,
+          description: `Earned from ${settings.currency}${total.toFixed(0)} order (${customerTier.multiplier}x ${customerTier.name})`,
+          date: new Date().toISOString(),
+          tier: customerTier.name,
+        });
+        toast.success(`Earned ${earned} points (${customerTier.name} ${customerTier.multiplier}x)! ⭐`);
       }
     }
     
