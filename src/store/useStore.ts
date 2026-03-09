@@ -130,16 +130,32 @@ export function useCategories() {
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>(() => getLS('pos_customers', defaultCustomers));
   useEffect(() => setLS('pos_customers', customers), [customers]);
-  const add = useCallback((c: Omit<Customer, 'id'>) => setCustomers(prev => [...prev, { ...c, loyaltyPoints: 0, id: uid() }]), []);
+  const add = useCallback((c: Omit<Customer, 'id'>) => setCustomers(prev => [...prev, { ...c, loyaltyPoints: 0, totalPointsEarned: 0, id: uid() }]), []);
   const update = useCallback((c: Customer) => setCustomers(prev => prev.map(x => x.id === c.id ? c : x)), []);
   const remove = useCallback((id: string) => setCustomers(prev => prev.filter(x => x.id !== id)), []);
   const addLoyaltyPoints = useCallback((customerId: string, points: number) => {
-    setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, loyaltyPoints: (c.loyaltyPoints || 0) + points } : c));
+    setCustomers(prev => prev.map(c => c.id === customerId ? {
+      ...c,
+      loyaltyPoints: (c.loyaltyPoints || 0) + points,
+      totalPointsEarned: (c.totalPointsEarned || 0) + points,
+    } : c));
   }, []);
   const redeemLoyaltyPoints = useCallback((customerId: string, points: number) => {
     setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, loyaltyPoints: Math.max(0, (c.loyaltyPoints || 0) - points) } : c));
   }, []);
   return { customers, add, update, remove, addLoyaltyPoints, redeemLoyaltyPoints };
+}
+
+export function useLoyaltyHistory() {
+  const [history, setHistory] = useState<import('@/lib/loyalty').LoyaltyEvent[]>(() => getLS('pos_loyalty_history', []));
+  useEffect(() => setLS('pos_loyalty_history', history), [history]);
+  const addEvent = useCallback((event: Omit<import('@/lib/loyalty').LoyaltyEvent, 'id'>) => {
+    setHistory(prev => [...prev, { ...event, id: uid() }]);
+  }, []);
+  const getCustomerHistory = useCallback((customerId: string) => {
+    return history.filter(e => e.customerId === customerId);
+  }, [history]);
+  return { history, addEvent, getCustomerHistory };
 }
 
 export function useSuppliers() {

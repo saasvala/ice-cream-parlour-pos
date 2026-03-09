@@ -24,6 +24,7 @@ export interface Customer {
   phone: string;
   email?: string;
   loyaltyPoints?: number;
+  totalPointsEarned?: number; // lifetime points for tier calculation
 }
 
 export interface Supplier {

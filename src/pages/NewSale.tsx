@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useProducts, useCategories, useOrders, useSettings, useCustomers } from '@/store/useStore';
+import { useProducts, useCategories, useOrders, useSettings, useCustomers, useLoyaltyHistory } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,9 @@ import { Plus, Minus, ShoppingBag, CreditCard, Banknote, Smartphone, Printer, Sa
 import type { OrderItem } from '@/types/pos';
 import { toast } from 'sonner';
 import ReceiptPreview from '@/components/ReceiptPreview';
+import { POINTS_VALUE, getTier, getNextTier, calcEarnedPoints } from '@/lib/loyalty';
 
 const TOPPINGS = ['Sprinkles', 'Chocolate Sauce', 'Caramel', 'Nuts', 'Whipped Cream', 'Cherry'];
-const POINTS_PER_100 = 10; // earn 10 points per ₹100 spent
-const POINTS_VALUE = 1; // 1 point = ₹1 discount
 
 export default function NewSale() {
   const { products, deductStock } = useProducts();
@@ -18,6 +17,7 @@ export default function NewSale() {
   const { add: addOrder } = useOrders();
   const { settings } = useSettings();
   const { customers, addLoyaltyPoints, redeemLoyaltyPoints } = useCustomers();
+  const { addEvent } = useLoyaltyHistory();
   
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<OrderItem[]>([]);
@@ -32,6 +32,8 @@ export default function NewSale() {
   const filteredProducts = products.filter(p => p.category === activeCategory);
   const selectedCust = customers.find(c => c.id === selectedCustomer);
   const availablePoints = selectedCust?.loyaltyPoints || 0;
+  const customerTier = getTier(selectedCust?.totalPointsEarned || 0);
+  const nextTier = getNextTier(selectedCust?.totalPointsEarned || 0);
   
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const taxAmount = subtotal * (settings.taxRate / 100);
@@ -87,11 +89,27 @@ export default function NewSale() {
     if (selectedCustomer) {
       if (redeemPoints > 0) {
         redeemLoyaltyPoints(selectedCustomer, redeemPoints);
+        addEvent({
+          customerId: selectedCustomer,
+          type: 'redeem',
+          points: redeemPoints,
+          description: `Redeemed on order`,
+          date: new Date().toISOString(),
+          tier: customerTier.name,
+        });
       }
-      const earned = Math.floor((total / 100) * POINTS_PER_100);
+      const earned = calcEarnedPoints(total, selectedCust?.totalPointsEarned || 0);
       if (earned > 0) {
         addLoyaltyPoints(selectedCustomer, earned);
-        toast.success(`Earned ${earned} loyalty points! ⭐`);
+        addEvent({
+          customerId: selectedCustomer,
+          type: 'earn',
+          points: earned,
+          description: `Earned from ${settings.currency}${total.toFixed(0)} order (${customerTier.multiplier}x ${customerTier.name})`,
+          date: new Date().toISOString(),
+          tier: customerTier.name,
+        });
+        toast.success(`Earned ${earned} points (${customerTier.name} ${customerTier.multiplier}x)! ⭐`);
       }
     }
     
@@ -126,10 +144,17 @@ export default function NewSale() {
           </select>
         </div>
         {selectedCustomer && (
-          <div className="flex items-center gap-2 mt-2 px-1">
-            <Star size={14} className="text-yellow-500" />
-            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">{availablePoints} loyalty points</span>
-            <span className="text-[10px] text-muted-foreground">(= {settings.currency}{availablePoints * POINTS_VALUE} value)</span>
+          <div className="mt-2 px-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{customerTier.icon}</span>
+              <span className={`text-xs font-bold ${customerTier.color}`}>{customerTier.name}</span>
+              <span className="text-[10px] text-muted-foreground">({customerTier.multiplier}x points)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Star size={14} className="text-primary" />
+              <span className="text-xs font-semibold">{availablePoints} points</span>
+              <span className="text-[10px] text-muted-foreground">(= {settings.currency}{availablePoints * POINTS_VALUE})</span>
+            </div>
           </div>
         )}
       </div>
@@ -294,9 +319,16 @@ export default function NewSale() {
               <span className="text-gradient-ice">{settings.currency}{total.toFixed(2)}</span>
             </div>
             {selectedCustomer && (
-              <p className="text-[10px] text-muted-foreground text-right">
-                ⭐ Will earn ~{Math.floor((total / 100) * POINTS_PER_100)} loyalty points
-              </p>
+              <div className="text-right space-y-0.5">
+                <p className="text-[10px] text-muted-foreground">
+                  {customerTier.icon} {customerTier.name} tier ({customerTier.multiplier}x) — Will earn ~{calcEarnedPoints(total, selectedCust?.totalPointsEarned || 0)} pts
+                </p>
+                {nextTier && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {(nextTier.minPoints - (selectedCust?.totalPointsEarned || 0))} pts to {nextTier.icon} {nextTier.name}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
