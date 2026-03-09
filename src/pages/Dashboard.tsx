@@ -1,10 +1,11 @@
 import { useNavigate, Navigate } from 'react-router-dom';
-import { useAuth, useOrders, useProducts } from '@/store/useStore';
+import { useAuth, useOrders, useProducts, useCustomers } from '@/store/useStore';
 import Layout from '@/components/Layout';
+import { LOYALTY_TIERS, getTier } from '@/lib/loyalty';
 import { 
   ShoppingCart, IceCream, LayoutGrid, Users, Truck, Package, 
   BarChart3, Settings, TrendingUp, Star, AlertTriangle, Clock,
-  Plus, LogOut
+  Plus, LogOut, Trophy, Award
 } from 'lucide-react';
 
 export default function Dashboard() {
