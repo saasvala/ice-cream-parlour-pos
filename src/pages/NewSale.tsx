@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useProducts, useCategories, useOrders, useSettings, useCustomers } from '@/store/useStore';
+import { useProducts, useCategories, useOrders, useSettings, useCustomers, useLoyaltyHistory } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,9 @@ import { Plus, Minus, ShoppingBag, CreditCard, Banknote, Smartphone, Printer, Sa
 import type { OrderItem } from '@/types/pos';
 import { toast } from 'sonner';
 import ReceiptPreview from '@/components/ReceiptPreview';
+import { POINTS_VALUE, getTier, getNextTier, calcEarnedPoints } from '@/lib/loyalty';
 
 const TOPPINGS = ['Sprinkles', 'Chocolate Sauce', 'Caramel', 'Nuts', 'Whipped Cream', 'Cherry'];
-const POINTS_PER_100 = 10; // earn 10 points per ₹100 spent
-const POINTS_VALUE = 1; // 1 point = ₹1 discount
 
 export default function NewSale() {
   const { products, deductStock } = useProducts();
