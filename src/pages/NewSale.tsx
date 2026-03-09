@@ -144,10 +144,17 @@ export default function NewSale() {
           </select>
         </div>
         {selectedCustomer && (
-          <div className="flex items-center gap-2 mt-2 px-1">
-            <Star size={14} className="text-yellow-500" />
-            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">{availablePoints} loyalty points</span>
-            <span className="text-[10px] text-muted-foreground">(= {settings.currency}{availablePoints * POINTS_VALUE} value)</span>
+          <div className="mt-2 px-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{customerTier.icon}</span>
+              <span className={`text-xs font-bold ${customerTier.color}`}>{customerTier.name}</span>
+              <span className="text-[10px] text-muted-foreground">({customerTier.multiplier}x points)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Star size={14} className="text-primary" />
+              <span className="text-xs font-semibold">{availablePoints} points</span>
+              <span className="text-[10px] text-muted-foreground">(= {settings.currency}{availablePoints * POINTS_VALUE})</span>
+            </div>
           </div>
         )}
       </div>
