@@ -3,19 +3,21 @@ import { useProducts, useCategories, useOrders, useSettings, useCustomers } from
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Minus, ShoppingBag, CreditCard, Banknote, Smartphone, Printer, Save, Trash2, User } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, CreditCard, Banknote, Smartphone, Printer, Save, Trash2, User, Star } from 'lucide-react';
 import type { OrderItem } from '@/types/pos';
 import { toast } from 'sonner';
 import ReceiptPreview from '@/components/ReceiptPreview';
 
 const TOPPINGS = ['Sprinkles', 'Chocolate Sauce', 'Caramel', 'Nuts', 'Whipped Cream', 'Cherry'];
+const POINTS_PER_100 = 10; // earn 10 points per ₹100 spent
+const POINTS_VALUE = 1; // 1 point = ₹1 discount
 
 export default function NewSale() {
   const { products, deductStock } = useProducts();
   const { categories } = useCategories();
   const { add: addOrder } = useOrders();
   const { settings } = useSettings();
-  const { customers } = useCustomers();
+  const { customers, addLoyaltyPoints, redeemLoyaltyPoints } = useCustomers();
   
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<OrderItem[]>([]);
@@ -25,12 +27,16 @@ export default function NewSale() {
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastOrderId, setLastOrderId] = useState('');
+  const [redeemPoints, setRedeemPoints] = useState(0);
 
   const filteredProducts = products.filter(p => p.category === activeCategory);
+  const selectedCust = customers.find(c => c.id === selectedCustomer);
+  const availablePoints = selectedCust?.loyaltyPoints || 0;
   
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const taxAmount = subtotal * (settings.taxRate / 100);
-  const total = subtotal + taxAmount - discount;
+  const pointsDiscount = Math.min(redeemPoints * POINTS_VALUE, subtotal);
+  const total = subtotal + taxAmount - discount - pointsDiscount;
 
   const addToCart = (productId: string, scoops: number) => {
     const product = products.find(p => p.id === productId);
@@ -63,15 +69,12 @@ export default function NewSale() {
   const handleSave = () => {
     if (cart.length === 0) { toast.error('Add items to cart first'); return; }
     
-    // Deduct stock for each item
-    cart.forEach(item => {
-      deductStock(item.productId, item.qty);
-    });
+    cart.forEach(item => { deductStock(item.productId, item.qty); });
     
     const order = addOrder({
       items: cart,
       subtotal,
-      discount,
+      discount: discount + pointsDiscount,
       tax: taxAmount,
       total,
       paymentMode,
@@ -79,6 +82,18 @@ export default function NewSale() {
       date: new Date().toISOString(),
       status: 'completed',
     });
+
+    // Loyalty points: redeem then earn
+    if (selectedCustomer) {
+      if (redeemPoints > 0) {
+        redeemLoyaltyPoints(selectedCustomer, redeemPoints);
+      }
+      const earned = Math.floor((total / 100) * POINTS_PER_100);
+      if (earned > 0) {
+        addLoyaltyPoints(selectedCustomer, earned);
+        toast.success(`Earned ${earned} loyalty points! ⭐`);
+      }
+    }
     
     setLastOrderId(order.id);
     toast.success('Order saved successfully! 🍦');
@@ -88,25 +103,35 @@ export default function NewSale() {
   const handleNewOrder = () => {
     setCart([]);
     setDiscount(0);
+    setRedeemPoints(0);
     setSelectedCustomer('');
     setShowReceipt(false);
   };
 
-  const customerName = customers.find(c => c.id === selectedCustomer)?.name;
+  const customerName = selectedCust?.name;
 
   return (
     <Layout title="New Sale" showBack>
       {/* Customer Selection */}
-      <div className="glass-card p-3 mb-4 flex items-center gap-2">
-        <User size={16} className="text-muted-foreground flex-shrink-0" />
-        <select
-          value={selectedCustomer}
-          onChange={e => setSelectedCustomer(e.target.value)}
-          className="flex-1 h-8 rounded-lg bg-transparent border-0 text-sm focus:outline-none"
-        >
-          <option value="">Walk-in Customer</option>
-          {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>)}
-        </select>
+      <div className="glass-card p-3 mb-4">
+        <div className="flex items-center gap-2">
+          <User size={16} className="text-muted-foreground flex-shrink-0" />
+          <select
+            value={selectedCustomer}
+            onChange={e => { setSelectedCustomer(e.target.value); setRedeemPoints(0); }}
+            className="flex-1 h-8 rounded-lg bg-transparent border-0 text-sm focus:outline-none"
+          >
+            <option value="">Walk-in Customer</option>
+            {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>)}
+          </select>
+        </div>
+        {selectedCustomer && (
+          <div className="flex items-center gap-2 mt-2 px-1">
+            <Star size={14} className="text-yellow-500" />
+            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">{availablePoints} loyalty points</span>
+            <span className="text-[10px] text-muted-foreground">(= {settings.currency}{availablePoints * POINTS_VALUE} value)</span>
+          </div>
+        )}
       </div>
 
       {/* Category Tabs */}
@@ -237,6 +262,29 @@ export default function NewSale() {
                 placeholder="0"
               />
             </div>
+            {/* Loyalty Points Redemption */}
+            {selectedCustomer && availablePoints > 0 && (
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-muted-foreground flex items-center gap-1"><Star size={12} className="text-yellow-500" /> Redeem Points</span>
+                <div className="flex items-center gap-1">
+                  <Input 
+                    type="number" 
+                    value={redeemPoints || ''} 
+                    onChange={e => setRedeemPoints(Math.min(availablePoints, Math.max(0, Number(e.target.value))))} 
+                    className="w-20 h-8 text-right rounded-lg text-sm"
+                    placeholder="0"
+                    max={availablePoints}
+                  />
+                  <button onClick={() => setRedeemPoints(availablePoints)} className="text-[10px] text-primary font-semibold px-2">Max</button>
+                </div>
+              </div>
+            )}
+            {pointsDiscount > 0 && (
+              <div className="flex justify-between text-sm text-yellow-600 dark:text-yellow-400">
+                <span>Points Discount</span>
+                <span>-{settings.currency}{pointsDiscount}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tax ({settings.taxRate}%)</span>
               <span>{settings.currency}{taxAmount.toFixed(2)}</span>
@@ -245,6 +293,11 @@ export default function NewSale() {
               <span>Total</span>
               <span className="text-gradient-ice">{settings.currency}{total.toFixed(2)}</span>
             </div>
+            {selectedCustomer && (
+              <p className="text-[10px] text-muted-foreground text-right">
+                ⭐ Will earn ~{Math.floor((total / 100) * POINTS_PER_100)} loyalty points
+              </p>
+            )}
           </div>
 
           {/* Payment Mode */}
@@ -295,7 +348,7 @@ export default function NewSale() {
         onClose={handleNewOrder}
         items={cart.length > 0 ? cart : []}
         subtotal={subtotal}
-        discount={discount}
+        discount={discount + pointsDiscount}
         tax={taxAmount}
         total={total}
         paymentMode={paymentMode}
