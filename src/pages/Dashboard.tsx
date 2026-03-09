@@ -13,6 +13,7 @@ export default function Dashboard() {
   const { isLoggedIn, logout } = useAuth();
   const { orders } = useOrders();
   const { products } = useProducts();
+  const { customers } = useCustomers();
 
   if (!isLoggedIn) { return <Navigate to="/login" replace />; }
 
@@ -21,6 +22,17 @@ export default function Dashboard() {
   const todaySales = todayOrders.reduce((s, o) => s + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const lowStockItems = products.filter(p => p.stockQty <= p.lowStockAlert).length;
+
+  // Loyalty tier distribution
+  const tierDistribution = LOYALTY_TIERS.map(tier => ({
+    ...tier,
+    count: customers.filter(c => getTier(c.totalPointsEarned || 0).name === tier.name).length,
+  }));
+
+  // Top customers by loyalty points
+  const topCustomers = [...customers]
+    .sort((a, b) => (b.loyaltyPoints || 0) - (a.loyaltyPoints || 0))
+    .slice(0, 5);
 
   const stats = [
     { label: 'Today Sales', value: `₹${todaySales.toLocaleString()}`, icon: TrendingUp, color: 'bg-primary/10 text-primary' },
