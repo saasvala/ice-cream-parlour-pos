@@ -82,19 +82,33 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Floating Quick Actions */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center gap-3 px-4">
+      {/* Quick Shortcuts Bar */}
+      <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</h2>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+        {[
+          { label: 'New Sale', icon: ShoppingCart, path: '/new-sale', accent: 'bg-primary text-primary-foreground' },
+          { label: 'View Orders', icon: Clock, path: '/orders', accent: 'bg-accent text-accent-foreground' },
+          { label: 'Add Product', icon: Plus, path: '/products?add=true', accent: 'bg-secondary text-secondary-foreground' },
+          { label: 'Reports', icon: BarChart3, path: '/reports', accent: 'bg-muted text-foreground' },
+        ].map((action, i) => (
+          <button
+            key={i}
+            onClick={() => navigate(action.path)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-sm whitespace-nowrap shadow-md active:scale-95 transition-transform ${action.accent}`}
+          >
+            <action.icon size={16} />
+            {action.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Floating New Sale Button */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-4">
         <button
           onClick={() => navigate('/new-sale')}
-          className="flex-1 max-w-[200px] h-12 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          className="h-12 px-8 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           🍦 Scoop Sale
-        </button>
-        <button
-          onClick={() => navigate('/products?add=true')}
-          className="h-12 w-12 rounded-2xl bg-secondary text-secondary-foreground shadow-lg shadow-secondary/30 flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <Plus size={22} />
         </button>
       </div>
     </Layout>
