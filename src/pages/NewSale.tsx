@@ -34,7 +34,6 @@ export default function NewSale() {
   const availablePoints = selectedCust?.loyaltyPoints || 0;
   const customerTier = getTier(selectedCust?.totalPointsEarned || 0);
   const nextTier = getNextTier(selectedCust?.totalPointsEarned || 0);
-  const availablePoints = selectedCust?.loyaltyPoints || 0;
   
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const taxAmount = subtotal * (settings.taxRate / 100);
