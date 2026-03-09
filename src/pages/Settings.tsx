@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 const BACKUP_KEYS = [
   'pos_products', 'pos_categories', 'pos_customers', 'pos_suppliers',
   'pos_orders', 'pos_purchases', 'pos_adjustments', 'pos_settings',
+  'pos_loyalty_history',
 ];
 
 export default function SettingsPage() {
