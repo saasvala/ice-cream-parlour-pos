@@ -1,10 +1,11 @@
 import { useNavigate, Navigate } from 'react-router-dom';
-import { useAuth, useOrders, useProducts } from '@/store/useStore';
+import { useAuth, useOrders, useProducts, useCustomers } from '@/store/useStore';
 import Layout from '@/components/Layout';
+import { LOYALTY_TIERS, getTier } from '@/lib/loyalty';
 import { 
   ShoppingCart, IceCream, LayoutGrid, Users, Truck, Package, 
   BarChart3, Settings, TrendingUp, Star, AlertTriangle, Clock,
-  Plus, LogOut
+  Plus, LogOut, Trophy, Award
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -12,6 +13,7 @@ export default function Dashboard() {
   const { isLoggedIn, logout } = useAuth();
   const { orders } = useOrders();
   const { products } = useProducts();
+  const { customers } = useCustomers();
 
   if (!isLoggedIn) { return <Navigate to="/login" replace />; }
 
@@ -20,6 +22,17 @@ export default function Dashboard() {
   const todaySales = todayOrders.reduce((s, o) => s + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const lowStockItems = products.filter(p => p.stockQty <= p.lowStockAlert).length;
+
+  // Loyalty tier distribution
+  const tierDistribution = LOYALTY_TIERS.map(tier => ({
+    ...tier,
+    count: customers.filter(c => getTier(c.totalPointsEarned || 0).name === tier.name).length,
+  }));
+
+  // Top customers by loyalty points
+  const topCustomers = [...customers]
+    .sort((a, b) => (b.loyaltyPoints || 0) - (a.loyaltyPoints || 0))
+    .slice(0, 5);
 
   const stats = [
     { label: 'Today Sales', value: `₹${todaySales.toLocaleString()}`, icon: TrendingUp, color: 'bg-primary/10 text-primary' },
@@ -102,7 +115,52 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Floating New Sale Button */}
+      {/* Loyalty Dashboard Widget */}
+      <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Loyalty Rewards</h2>
+      
+      {/* Tier Distribution */}
+      <div className="glass-card-hover p-4 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Award size={16} className="text-primary" />
+          <span className="text-sm font-semibold">Tier Distribution</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {tierDistribution.map((tier) => (
+            <div key={tier.name} className="bg-background/50 rounded-lg p-2.5 text-center">
+              <div className="text-lg mb-1">{tier.icon}</div>
+              <p className="text-xs font-semibold">{tier.name}</p>
+              <p className="text-sm font-bold text-primary">{tier.count}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top Customers */}
+      <div className="glass-card-hover p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Trophy size={16} className="text-primary" />
+          <span className="text-sm font-semibold">Top Customers</span>
+        </div>
+        <div className="space-y-2">
+          {topCustomers.length > 0 ? (
+            topCustomers.map((customer, idx) => {
+              const tier = getTier(customer.totalPointsEarned || 0);
+              return (
+                <div key={customer.id} className="flex items-center justify-between p-2 bg-background/50 rounded-lg text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{tier.icon}</span>
+                    <span className="font-medium truncate text-xs">{customer.name}</span>
+                  </div>
+                  <span className="font-bold text-primary text-xs">{customer.loyaltyPoints || 0}pts</span>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-2">No customers yet</p>
+          )}
+        </div>
+      </div>
+
       <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-4">
         <button
           onClick={() => navigate('/new-sale')}
