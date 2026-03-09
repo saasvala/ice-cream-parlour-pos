@@ -312,9 +312,16 @@ export default function NewSale() {
               <span className="text-gradient-ice">{settings.currency}{total.toFixed(2)}</span>
             </div>
             {selectedCustomer && (
-              <p className="text-[10px] text-muted-foreground text-right">
-                ⭐ Will earn ~{Math.floor((total / 100) * POINTS_PER_100)} loyalty points
-              </p>
+              <div className="text-right space-y-0.5">
+                <p className="text-[10px] text-muted-foreground">
+                  {customerTier.icon} {customerTier.name} tier ({customerTier.multiplier}x) — Will earn ~{calcEarnedPoints(total, selectedCust?.totalPointsEarned || 0)} pts
+                </p>
+                {nextTier && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {(nextTier.minPoints - (selectedCust?.totalPointsEarned || 0))} pts to {nextTier.icon} {nextTier.name}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
