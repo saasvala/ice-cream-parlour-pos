@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSettings } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Save, Moon, Sun } from 'lucide-react';
+import { Save, Moon, Sun, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+
+const BACKUP_KEYS = [
+  'pos_products', 'pos_categories', 'pos_customers', 'pos_suppliers',
+  'pos_orders', 'pos_purchases', 'pos_adjustments', 'pos_settings',
+];
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -28,7 +34,6 @@ export default function SettingsPage() {
     }
   }, [isDark]);
 
-  // Initialize theme from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('pos_theme');
     if (saved === 'dark') {
@@ -38,6 +43,48 @@ export default function SettingsPage() {
   }, []);
 
   const update = (field: string, value: any) => setSettings(prev => ({ ...prev, [field]: value }));
+
+  const handleBackup = () => {
+    const data: Record<string, any> = {};
+    BACKUP_KEYS.forEach(key => {
+      const val = localStorage.getItem(key);
+      if (val) data[key] = JSON.parse(val);
+    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${settings.storeName.replace(/\s+/g, '_')}_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Backup downloaded! 💾');
+  };
+
+  const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        let restored = 0;
+        BACKUP_KEYS.forEach(key => {
+          if (data[key]) {
+            localStorage.setItem(key, JSON.stringify(data[key]));
+            restored++;
+          }
+        });
+        toast.success(`Restored ${restored} data sets! Reloading...`);
+        setTimeout(() => window.location.reload(), 1000);
+      } catch {
+        toast.error('Invalid backup file');
+      }
+    };
+    reader.readAsText(file);
+    if (fileRef.current) fileRef.current.value = '';
+  };
 
   return (
     <Layout title="Settings" showBack>
@@ -53,6 +100,21 @@ export default function SettingsPage() {
             </div>
           </div>
           <Switch checked={isDark} onCheckedChange={setIsDark} />
+        </div>
+      </div>
+
+      {/* Backup / Restore */}
+      <div className="glass-card p-5 mb-4">
+        <h2 className="font-bold font-fredoka text-lg mb-3">Data Backup</h2>
+        <p className="text-xs text-muted-foreground mb-3">Export all store data as a JSON file or restore from a previous backup.</p>
+        <div className="flex gap-2">
+          <Button onClick={handleBackup} variant="outline" className="flex-1 h-10 rounded-xl text-sm">
+            <Download size={16} className="mr-1" /> Export Backup
+          </Button>
+          <Button onClick={() => fileRef.current?.click()} variant="outline" className="flex-1 h-10 rounded-xl text-sm">
+            <Upload size={16} className="mr-1" /> Import Backup
+          </Button>
+          <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleRestore} />
         </div>
       </div>
 

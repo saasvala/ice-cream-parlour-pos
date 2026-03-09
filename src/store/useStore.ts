@@ -130,10 +130,16 @@ export function useCategories() {
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>(() => getLS('pos_customers', defaultCustomers));
   useEffect(() => setLS('pos_customers', customers), [customers]);
-  const add = useCallback((c: Omit<Customer, 'id'>) => setCustomers(prev => [...prev, { ...c, id: uid() }]), []);
+  const add = useCallback((c: Omit<Customer, 'id'>) => setCustomers(prev => [...prev, { ...c, loyaltyPoints: 0, id: uid() }]), []);
   const update = useCallback((c: Customer) => setCustomers(prev => prev.map(x => x.id === c.id ? c : x)), []);
   const remove = useCallback((id: string) => setCustomers(prev => prev.filter(x => x.id !== id)), []);
-  return { customers, add, update, remove };
+  const addLoyaltyPoints = useCallback((customerId: string, points: number) => {
+    setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, loyaltyPoints: (c.loyaltyPoints || 0) + points } : c));
+  }, []);
+  const redeemLoyaltyPoints = useCallback((customerId: string, points: number) => {
+    setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, loyaltyPoints: Math.max(0, (c.loyaltyPoints || 0) - points) } : c));
+  }, []);
+  return { customers, add, update, remove, addLoyaltyPoints, redeemLoyaltyPoints };
 }
 
 export function useSuppliers() {

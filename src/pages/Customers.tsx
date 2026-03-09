@@ -3,7 +3,7 @@ import { useCustomers, useOrders } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Pencil, Trash2, X, Search, History } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Search, History, Star } from 'lucide-react';
 import type { Customer } from '@/types/pos';
 import { toast } from 'sonner';
 
@@ -35,6 +35,12 @@ export default function Customers() {
     return (
       <Layout title={`${customer?.name} - History`} showBack>
         <button onClick={() => setViewHistory(null)} className="text-sm text-primary font-medium mb-4 flex items-center gap-1">← Back to Customers</button>
+        {customer && (
+          <div className="glass-card p-3 mb-4 flex items-center gap-2">
+            <Star size={16} className="text-yellow-500" />
+            <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">{customer.loyaltyPoints || 0} loyalty points</span>
+          </div>
+        )}
         {customerOrders.length === 0 ? (
           <p className="text-center text-muted-foreground py-8 text-sm">No purchase history</p>
         ) : (
@@ -72,6 +78,11 @@ export default function Customers() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm truncate">{c.name}</p>
                   <p className="text-xs text-muted-foreground">{c.phone}</p>
+                  {(c.loyaltyPoints || 0) > 0 && (
+                    <p className="text-[10px] text-yellow-600 dark:text-yellow-400 flex items-center gap-0.5 mt-0.5">
+                      <Star size={10} className="text-yellow-500" /> {c.loyaltyPoints} pts
+                    </p>
+                  )}
                 </div>
                 <button onClick={() => setViewHistory(c.id)} className="p-2 rounded-lg bg-muted text-muted-foreground"><History size={14} /></button>
                 <button onClick={() => openEdit(c)} className="p-2 rounded-lg bg-primary/10 text-primary"><Pencil size={14} /></button>
