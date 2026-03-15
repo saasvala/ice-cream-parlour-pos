@@ -4,57 +4,36 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v3
         with:
-          node-version: 18
+          distribution: 'temurin'
+          java-version: '17' # change if your project needs a different Java version
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+      - name: Clean Gradle cache
+        run: rm -rf ~/.gradle/caches
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Vite project
-        run: npm run build
-
-      - name: Install Capacitor
-        run: |
-          npm install @capacitor/core
-          npm install @capacitor/cli
-          npm install @capacitor/android
-
-      - name: Create Android project
-        run: |
-          npx cap init app com.app.test --web-dir=dist
-          npx cap add android
-          npx cap copy
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x ./gradlew
 
       - name: Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
 
-      - name: Rename APK
-        run: |
-          mv android/app/build/outputs/apk/debug/app-debug.apk ${{ github.event.repository.name }}.apk
-
+      # Add optional steps for artifact upload if needed
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: apk
-          path: ${{ github.event.repository.name }}.apk
+          name: app-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
