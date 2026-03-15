@@ -7,41 +7,33 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install dependencies
-        run: npm install
+      - run: npm install
+      - run: npm run build
 
-      - name: Build web app
-        run: npm run build
+      - run: npm install @capacitor/core @capacitor/cli
 
-      - name: Install Capacitor
-        run: |
-          npm install @capacitor/core
-          npm install @capacitor/cli
-          npx cap init saasvala com.saasvala.app
-          npx cap add android
-          npx cap copy
+      - run: npx cap init app com.saasvala.app
 
-      - name: Build APK
-        run: |
+      - run: npx cap add android
+
+      - run: npx cap copy
+
+      - run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: APK
+          name: apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
