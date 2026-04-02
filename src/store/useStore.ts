@@ -2,6 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Product, Category, Customer, Supplier, Order, PurchaseEntry, StockAdjustment, StoreSettings } from '@/types/pos';
 import type { UserRole } from '@/types/pos';
 
+const SESSION_EXPIRATION_MS = 12 * 60 * 60 * 1000;
+
+function generateSessionToken(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `sess_${crypto.randomUUID()}`;
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    return `sess_${hex}`;
+  }
+  throw new Error('Secure random generator unavailable for session token');
+}
+
 function getLS<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
@@ -223,23 +238,36 @@ export function useAuth() {
   }, [sessionExpiresAt]);
 
   const login = useCallback((nextRole: UserRole = 'user') => {
-    const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
-    const token = `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-    setRole(nextRole);
-    setIsLoggedIn(true);
-    setSessionToken(token);
-    setSessionExpiresAt(expiresAt);
-    setLS('pos_user_role', nextRole);
-    setLS('pos_logged_in', true);
-    setLS('pos_session_token', token);
-    setLS('pos_session_expires_at', expiresAt);
+    try {
+      const expiresAt = new Date(Date.now() + SESSION_EXPIRATION_MS).toISOString();
+      const token = generateSessionToken();
+      setRole(nextRole);
+      setIsLoggedIn(true);
+      setSessionToken(token);
+      setSessionExpiresAt(expiresAt);
+      setLS('pos_user_role', nextRole);
+      setLS('pos_logged_in', true);
+      setLS('pos_session_token', token);
+      setLS('pos_session_expires_at', expiresAt);
+    } catch {
+      setRole('user');
+      setIsLoggedIn(false);
+      setSessionToken(null);
+      setSessionExpiresAt(null);
+      setLS('pos_user_role', 'user');
+      setLS('pos_logged_in', false);
+      setLS('pos_session_token', null);
+      setLS('pos_session_expires_at', null);
+    }
   }, []);
 
   const logout = useCallback(() => {
     setIsLoggedIn(false);
+    setRole('user');
     setSessionToken(null);
     setSessionExpiresAt(null);
     setLS('pos_logged_in', false);
+    setLS('pos_user_role', 'user');
     setLS('pos_session_token', null);
     setLS('pos_session_expires_at', null);
   }, []);

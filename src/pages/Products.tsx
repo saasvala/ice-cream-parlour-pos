@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useProducts, useCategories } from '@/store/useStore';
 import Layout from '@/components/Layout';
@@ -30,6 +29,7 @@ export default function Products() {
   const openEdit = (p: Product) => { setForm(p); setEditing(p); setShowForm(true); setVariantInput(''); };
   
   const handleSave = () => {
+    if (categories.length === 0) { toast.error('Add a category first'); return; }
     if (!form.name.trim()) { toast.error('Product name required'); return; }
     if (editing) { update({ ...editing, ...form }); toast.success('Product updated'); }
     else { add(form); toast.success('Product added'); }
@@ -43,6 +43,20 @@ export default function Products() {
     setForm(f => ({ ...f, variants: [...f.variants, variantInput.trim()] }));
     setVariantInput('');
   };
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      if (categories.length === 0) {
+        toast.error('Please create a category before adding a product');
+        setSearchParams({}, { replace: true });
+        return;
+      }
+      setForm({ ...emptyProduct, category: categories[0]?.id || '' });
+      setEditing(null);
+      setShowForm(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, categories]);
 
   return (
     <Layout title="Products" showBack>
@@ -148,11 +162,3 @@ export default function Products() {
     </Layout>
   );
 }
-  useEffect(() => {
-    if (searchParams.get('add') === 'true') {
-      setForm({ ...emptyProduct, category: categories[0]?.id || '' });
-      setEditing(null);
-      setShowForm(true);
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams, categories]);

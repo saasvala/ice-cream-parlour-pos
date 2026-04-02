@@ -60,7 +60,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-fredoka font-bold text-gradient-ice">Frosty Scoops</h1>
-          <p className="text-sm text-muted-foreground">Dashboard · {role}</p>
+          <p className="text-sm text-muted-foreground">Dashboard · {roleLabel}</p>
         </div>
         <button onClick={() => { logout(); navigate('/login'); }} className="p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
           <LogOut size={18} className="text-muted-foreground" />
@@ -172,3 +172,4 @@ export default function Dashboard() {
     </Layout>
   );
 }
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
