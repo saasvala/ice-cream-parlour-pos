@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useProducts, useCategories } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -15,6 +17,7 @@ const emptyProduct: Omit<Product, 'id'> = {
 export default function Products() {
   const { products, add, update, remove } = useProducts();
   const { categories } = useCategories();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -145,3 +148,11 @@ export default function Products() {
     </Layout>
   );
 }
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      setForm({ ...emptyProduct, category: categories[0]?.id || '' });
+      setEditing(null);
+      setShowForm(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, categories]);

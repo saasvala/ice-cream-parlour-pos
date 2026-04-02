@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import type { UserRole } from '@/types/pos';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
+  const [role, setRole] = useState<UserRole>('user');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function Login() {
     }
     setLoading(true);
     setTimeout(() => {
-      login();
+      login(role);
       navigate('/dashboard');
     }, 800);
   };
@@ -83,6 +85,19 @@ export default function Login() {
               <Switch checked={remember} onCheckedChange={setRemember} />
               <span className="text-sm text-muted-foreground">Remember me</span>
             </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Role</label>
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value as UserRole)}
+              className="w-full h-12 rounded-xl bg-muted/50 border border-border/50 px-3 text-sm"
+            >
+              <option value="user">User</option>
+              <option value="reseller">Reseller</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <Button
