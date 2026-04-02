@@ -1,3 +1,5 @@
+export type UserRole = 'admin' | 'reseller' | 'user';
+
 export interface Product {
   id: string;
   name: string;
