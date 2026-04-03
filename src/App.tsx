@@ -18,7 +18,7 @@ import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/Settings";
 import OrderHistory from "./pages/OrderHistory";
-import NotFound from "./pages/NotFound";
+import ValaBuilder from "./pages/ValaBuilder";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +44,7 @@ const App = () => (
           <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'reseller']}><Reports /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
+          <Route path="/vala-builder" element={<ProtectedRoute allowedRoles={['admin']}><ValaBuilder /></ProtectedRoute>} />
 
           <Route path="/home" element={<Navigate to="/dashboard" replace />} />
           <Route path="/sales" element={<Navigate to="/new-sale" replace />} />
@@ -59,6 +60,7 @@ const App = () => (
           <Route path="/stock" element={<Navigate to="/inventory" replace />} />
           <Route path="/order-history" element={<Navigate to="/orders" replace />} />
           <Route path="/report" element={<Navigate to="/reports" replace />} />
+          <Route path="/factory" element={<Navigate to="/vala-builder" replace />} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
