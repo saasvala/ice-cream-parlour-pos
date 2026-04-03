@@ -17,7 +17,7 @@ export default function ValaBuilder() {
   const activeJob = useMemo<ValaJob | null>(() => {
     if (!activeJobId) return jobs[0] ?? null;
     return valaJobStore.read(activeJobId) || null;
-  }, [jobs, activeJobId, refreshToken]);
+  }, [jobs, activeJobId]);
 
   const observability = activeJob ? valaJobStore.getObservability(activeJob.id) : null;
 
