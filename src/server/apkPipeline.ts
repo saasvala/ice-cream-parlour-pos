@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createHmac, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { cwd } from 'node:process';
 import { spawn } from 'node:child_process';
@@ -112,6 +113,12 @@ const defaultDb: PipelineDb = {
   rate_limits: [],
 };
 
+const MAX_LOG_SNIPPET = 800;
+const MAX_CLONE_FAILURE_SNIPPET = 500;
+const DEFAULT_REACT_VERSION = '^18.3.1';
+const DEFAULT_VITE_VERSION = '^5.4.19';
+const DEFAULT_SECRET = 'dev-only-apk-pipeline-secret';
+
 async function exists(target: string): Promise<boolean> {
   try {
     await fs.access(target);
@@ -168,7 +175,11 @@ export class ApkPipelineService {
     this.dbPath = path.join(baseDir, 'db.json');
     this.workDir = path.join(baseDir, 'work');
     this.storageDir = path.join(baseDir, 'storage');
-    this.secret = 'apk_pipeline_local_secret';
+    const configuredSecret = process.env.APK_PIPELINE_SECRET;
+    if (process.env.NODE_ENV === 'production' && !configuredSecret) {
+      throw new Error('APK_PIPELINE_SECRET must be set in production');
+    }
+    this.secret = configuredSecret || DEFAULT_SECRET;
   }
 
   private async ensureInitialized() {
@@ -244,7 +255,7 @@ export class ApkPipelineService {
     const headerUser = req.headers['x-user-id'];
     if (typeof headerUser === 'string' && headerUser.trim()) return headerUser.trim();
     if (queryUserId?.trim()) return queryUserId.trim();
-    return 'guest';
+    return null;
   }
 
   private checkRateLimit(db: PipelineDb, key: string, max = 20, windowMs = 60 * 60 * 1000) {
@@ -285,7 +296,7 @@ export class ApkPipelineService {
     const cloneResult = await runCommand('git', ['clone', '--depth', '1', repoUrl, targetDir], this.workDir);
     if (!cloneResult.ok) {
       record.status = 'failed';
-      record.issues_found.push(`clone failed: ${cloneResult.output.slice(0, 500)}`);
+      record.issues_found.push(`clone failed: ${cloneResult.output.slice(0, MAX_CLONE_FAILURE_SNIPPET)}`);
       record.updated_at = nowIso();
       await this.writeDb(db);
       return record;
@@ -315,13 +326,13 @@ export class ApkPipelineService {
     }
     const hasReactDep = Boolean(packageJson.dependencies.react || packageJson.devDependencies.react);
     if (reactDetected && !hasReactDep) {
-      packageJson.dependencies.react = '^18.3.1';
-      packageJson.dependencies['react-dom'] = '^18.3.1';
+      packageJson.dependencies.react = DEFAULT_REACT_VERSION;
+      packageJson.dependencies['react-dom'] = DEFAULT_REACT_VERSION;
       record.issues_found.push('missing react dependencies fixed');
     }
     const hasViteDep = Boolean(packageJson.devDependencies.vite || packageJson.dependencies.vite);
     if ((viteConfigPresent || buildConfigDetected) && !hasViteDep) {
-      packageJson.devDependencies.vite = '^5.4.19';
+      packageJson.devDependencies.vite = DEFAULT_VITE_VERSION;
       record.issues_found.push('missing vite dependency fixed');
     }
 
@@ -421,14 +432,14 @@ export class ApkPipelineService {
       const install = await runCommand('npm', ['install'], scan.project_path);
       buildRecord.build_logs.push(`[attempt ${attempt}] npm install: ${install.ok ? 'ok' : 'failed'}`);
       if (!install.ok) {
-        buildRecord.build_logs.push(install.output.slice(0, 800));
+        buildRecord.build_logs.push(install.output.slice(0, MAX_LOG_SNIPPET));
         continue;
       }
 
       const build = await runCommand('npm', ['run', 'build'], scan.project_path);
       buildRecord.build_logs.push(`[attempt ${attempt}] npm run build: ${build.ok ? 'ok' : 'failed'}`);
       if (!build.ok) {
-        buildRecord.build_logs.push(build.output.slice(0, 800));
+        buildRecord.build_logs.push(build.output.slice(0, MAX_LOG_SNIPPET));
         continue;
       }
       if (await exists(buildRecord.dist_path!)) {
@@ -624,9 +635,9 @@ export class ApkPipelineService {
 
   async walletBalance(userId: string) {
     const db = await this.readDb();
-    const wallet = await this.ensureWallet(db, userId);
-    await this.writeDb(db);
-    return wallet;
+    const wallet = db.wallets.find((w) => w.user_id === userId);
+    if (wallet) return wallet;
+    return { user_id: userId, balance: 0, updated_at: nowIso() };
   }
 
   async grantSubscription(input: { user_id: string; days: number }) {
@@ -746,6 +757,7 @@ export class ApkPipelineService {
       if (method === 'GET' && pathname.startsWith('/apk/download/')) {
         const id = pathname.slice('/apk/download/'.length);
         const userId = this.getUserId(req, reqUrl?.searchParams.get('user_id') || undefined);
+        if (!userId) return sendJson(res, 401, { error: 'user identity is required' });
         const remoteKey = req.socket.remoteAddress || 'local';
         const result = await this.checkDownload(id, userId, remoteKey);
         return sendJson(res, 200, result);
@@ -766,7 +778,9 @@ export class ApkPipelineService {
       if (method === 'POST' && pathname === '/payment/create') {
         const body = await parseJsonBody<{ user_id?: string; build_id: string; amount?: number; method?: PaymentMethod; wallet_preferred?: boolean }>(req);
         if (!body.build_id) return sendJson(res, 400, { error: 'build_id is required' });
-        const result = await this.paymentCreate(body);
+        const userId = body.user_id || this.getUserId(req);
+        if (!userId) return sendJson(res, 401, { error: 'user identity is required' });
+        const result = await this.paymentCreate({ ...body, user_id: userId });
         return sendJson(res, 200, result);
       }
 
@@ -785,6 +799,7 @@ export class ApkPipelineService {
 
       if (method === 'GET' && pathname.startsWith('/wallet/')) {
         const userId = pathname.slice('/wallet/'.length);
+        if (!userId) return sendJson(res, 400, { error: 'user id is required' });
         const result = await this.walletBalance(userId);
         return sendJson(res, 200, result);
       }
@@ -803,16 +818,17 @@ export class ApkPipelineService {
   }
 }
 
-export function apkPipelinePlugin(service = new ApkPipelineService(path.join('/tmp', 'ice-cream-parlour-pos-apk'))) {
+export function apkPipelinePlugin(service?: ApkPipelineService) {
   return {
     name: 'apk-pipeline-plugin',
     apply: 'serve',
     configureServer(server) {
+      const resolvedService = service || new ApkPipelineService(path.join(os.tmpdir(), 'apk-pipeline'));
       server.middlewares.use((req, res, next) => {
         if (!req.url?.startsWith('/apk') && !req.url?.startsWith('/payment') && !req.url?.startsWith('/wallet') && !req.url?.startsWith('/subscription')) {
           return next();
         }
-        service.handle(req, res, next);
+        resolvedService.handle(req, res, next);
       });
     },
   } satisfies Plugin;

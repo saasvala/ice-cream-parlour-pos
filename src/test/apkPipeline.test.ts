@@ -1,10 +1,11 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { ApkPipelineService } from '@/server/apkPipeline';
 
 async function createServiceRoot(name: string) {
-  const root = path.join('/tmp', 'ice-cream-parlour-pos-tests', name);
+  const root = path.join(os.tmpdir(), 'ice-cream-parlour-pos-tests', name);
   await fs.rm(root, { recursive: true, force: true });
   await fs.mkdir(root, { recursive: true });
   return root;
@@ -55,5 +56,13 @@ describe('APK pipeline payment and download guard', () => {
 
     const download = await service.checkDownload(build_id, 'user-d', '127.0.0.1');
     expect(download.allowed).toBe(true);
+  });
+
+  it('requires user identity for secured download API behavior', async () => {
+    const root = await createServiceRoot(`auth-${Date.now()}`);
+    const service = new ApkPipelineService(root);
+    const { build_id } = await service.createBuildFixture();
+    const result = await service.checkDownload(build_id, 'user-e', '127.0.0.1');
+    expect(result.allowed).toBe(false);
   });
 });
