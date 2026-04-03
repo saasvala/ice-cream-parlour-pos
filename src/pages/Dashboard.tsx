@@ -2,10 +2,10 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth, useOrders, useProducts, useCustomers } from '@/store/useStore';
 import Layout from '@/components/Layout';
 import { LOYALTY_TIERS, getTier } from '@/lib/loyalty';
-import { 
-  ShoppingCart, IceCream, LayoutGrid, Users, Truck, Package, 
+import {
+  ShoppingCart, IceCream, LayoutGrid, Users, Truck, Package,
   BarChart3, Settings, TrendingUp, Star, AlertTriangle, Clock,
-  Plus, LogOut, Trophy, Award
+  Plus, LogOut, Trophy, Award, Bot
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -17,19 +17,18 @@ export default function Dashboard() {
 
   if (!hasValidSession) { return <Navigate to="/login" replace />; }
 
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
   const today = new Date().toDateString();
   const todayOrders = orders.filter(o => new Date(o.date).toDateString() === today);
   const todaySales = todayOrders.reduce((s, o) => s + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const lowStockItems = products.filter(p => p.stockQty <= p.lowStockAlert).length;
 
-  // Loyalty tier distribution
   const tierDistribution = LOYALTY_TIERS.map(tier => ({
     ...tier,
     count: customers.filter(c => getTier(c.totalPointsEarned || 0).name === tier.name).length,
   }));
 
-  // Top customers by loyalty points
   const topCustomers = [...customers]
     .sort((a, b) => (b.loyaltyPoints || 0) - (a.loyaltyPoints || 0))
     .slice(0, 5);
@@ -42,21 +41,21 @@ export default function Dashboard() {
   ];
 
   const menu = [
-    { label: 'New Sale', icon: ShoppingCart, path: '/new-sale', emoji: '🛒' },
-    { label: 'Products', icon: IceCream, path: '/products', emoji: '🍦' },
-    { label: 'Categories', icon: LayoutGrid, path: '/categories', emoji: '📂' },
-    { label: 'Customers', icon: Users, path: '/customers', emoji: '👥' },
-    { label: 'Suppliers', icon: Truck, path: '/suppliers', emoji: '🚚' },
-    { label: 'Purchase', icon: Package, path: '/purchase', emoji: '📦' },
-    { label: 'Inventory', icon: Package, path: '/inventory', emoji: '📊' },
-    { label: 'Reports', icon: BarChart3, path: '/reports', emoji: '📈' },
-    { label: 'Orders', icon: Clock, path: '/orders', emoji: '📋' },
-    { label: 'Settings', icon: Settings, path: '/settings', emoji: '⚙️' },
+    { label: 'New Sale', path: '/new-sale', emoji: '🛒' },
+    { label: 'Products', path: '/products', emoji: '🍦' },
+    { label: 'Categories', path: '/categories', emoji: '📂' },
+    { label: 'Customers', path: '/customers', emoji: '👥' },
+    { label: 'Suppliers', path: '/suppliers', emoji: '🚚' },
+    { label: 'Purchase', path: '/purchase', emoji: '📦' },
+    { label: 'Inventory', path: '/inventory', emoji: '📊' },
+    { label: 'Reports', path: '/reports', emoji: '📈' },
+    { label: 'Orders', path: '/orders', emoji: '📋' },
+    { label: 'Settings', path: '/settings', emoji: '⚙️' },
+    { label: 'Vala Builder', path: '/vala-builder', emoji: '🤖' },
   ];
 
   return (
     <Layout>
-      {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-fredoka font-bold text-gradient-ice">Frosty Scoops</h1>
@@ -67,7 +66,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         {stats.map((s, i) => (
           <div key={i} className="glass-card-hover p-4 cursor-pointer" style={{ animationDelay: `${i * 0.1}s` }}>
@@ -80,7 +78,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Menu Grid */}
       <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Quick Menu</h2>
       <div className="grid grid-cols-3 gap-3 mb-6">
         {menu.map((m, i) => (
@@ -95,7 +92,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Quick Shortcuts Bar */}
       <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</h2>
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
         {[
@@ -103,6 +99,7 @@ export default function Dashboard() {
           { label: 'View Orders', icon: Clock, path: '/orders', accent: 'bg-accent text-accent-foreground' },
           { label: 'Add Product', icon: Plus, path: '/products?add=true', accent: 'bg-secondary text-secondary-foreground' },
           { label: 'Reports', icon: BarChart3, path: '/reports', accent: 'bg-muted text-foreground' },
+          { label: 'Vala Builder', icon: Bot, path: '/vala-builder', accent: 'bg-ice-lavender/40 text-foreground' },
         ].map((action, i) => (
           <button
             key={i}
@@ -115,10 +112,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Loyalty Dashboard Widget */}
       <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Loyalty Rewards</h2>
-      
-      {/* Tier Distribution */}
+
       <div className="glass-card-hover p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
           <Award size={16} className="text-primary" />
@@ -135,7 +130,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top Customers */}
       <div className="glass-card-hover p-4">
         <div className="flex items-center gap-2 mb-3">
           <Trophy size={16} className="text-primary" />
@@ -143,7 +137,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-2">
           {topCustomers.length > 0 ? (
-            topCustomers.map((customer, idx) => {
+            topCustomers.map((customer) => {
               const tier = getTier(customer.totalPointsEarned || 0);
               return (
                 <div key={customer.id} className="flex items-center justify-between p-2 bg-background/50 rounded-lg text-sm">
@@ -172,4 +166,3 @@ export default function Dashboard() {
     </Layout>
   );
 }
-  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
