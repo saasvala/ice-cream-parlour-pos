@@ -4,34 +4,58 @@ import { useAuth } from '@/store/useStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Zap } from 'lucide-react';
 import type { UserRole } from '@/types/pos';
+import { toast } from 'sonner';
+
+const DEFAULT_CREDS: Record<UserRole, { username: string; password: string }> = {
+  admin: { username: 'admin', password: 'admin' },
+  reseller: { username: 'reseller', password: 'reseller' },
+  user: { username: 'user', password: 'user' },
+};
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLicensed } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(false);
-  const [role, setRole] = useState<UserRole>('user');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin');
+  const [remember, setRemember] = useState(true);
+  const [role, setRole] = useState<UserRole>('admin');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   if (!isLicensed) {
     return <Navigate to="/license" replace />;
   }
 
+  const doLogin = (r: UserRole) => {
+    try {
+      login(r);
+      toast.success(`Signed in as ${r}`);
+      navigate('/dashboard', { replace: true });
+    } catch (e) {
+      setError('Could not start session. Please try again.');
+    }
+  };
+
   const handleLogin = () => {
-    if (!username.trim() || !password.trim()) {
+    const u = username.trim();
+    const p = password.trim();
+    if (!u || !p) {
       setError('Please enter username and password');
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      login(role);
-      navigate('/dashboard');
-    }, 800);
+    setError('');
+    doLogin(role);
+  };
+
+  const quickLogin = (r: UserRole) => {
+    const creds = DEFAULT_CREDS[r];
+    setRole(r);
+    setUsername(creds.username);
+    setPassword(creds.password);
+    setError('');
+    doLogin(r);
   };
 
   return (
@@ -41,7 +65,7 @@ export default function Login() {
       <div className="absolute top-1/3 right-10 text-4xl animate-spin-slow opacity-8">❄️</div>
 
       <div className="glass-card p-8 w-full max-w-sm animate-fade-in">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
           <div className="text-6xl mb-3 animate-bounce-soft">🍦</div>
           <h2 className="text-2xl font-fredoka font-bold text-gradient-ice">Welcome Back</h2>
           <p className="text-sm text-muted-foreground mt-1">Sign in to Frosty Scoops POS</p>
@@ -70,6 +94,7 @@ export default function Login() {
                 value={password}
                 onChange={e => { setPassword(e.target.value); setError(''); }}
                 placeholder="Enter password"
+                onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
                 className="pl-10 pr-10 h-12 rounded-xl bg-muted/50 border-border/50"
               />
               <button onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -102,11 +127,30 @@ export default function Login() {
 
           <Button
             onClick={handleLogin}
-            disabled={loading}
             className="w-full h-12 rounded-xl font-bold text-base shadow-lg shadow-primary/25"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            Sign In
           </Button>
+
+          <div className="pt-2">
+            <p className="text-xs text-muted-foreground text-center mb-2 flex items-center justify-center gap-1">
+              <Zap size={12} /> Quick login
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => quickLogin('admin')}>
+                Admin
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => quickLogin('reseller')}>
+                Reseller
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => quickLogin('user')}>
+                User
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
+              Default: admin / admin · reseller / reseller · user / user
+            </p>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-6">

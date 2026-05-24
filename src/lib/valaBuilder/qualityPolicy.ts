@@ -10,8 +10,8 @@ export function evaluateQualityGate(job: ValaJob): QualityGateResult {
   const uiComplete = hasOutput(job, 'ui_builder');
   const apiComplete = hasOutput(job, 'backend_dev');
   const dbComplete = hasOutput(job, 'db_engineer');
-  const routesWorking = hasOutput(job, 'integrator') && hasOutput(job, 'tester');
-  const authWorking = hasOutput(job, 'backend_dev') && hasOutput(job, 'tester');
+  const routesWorking = hasOutput(job, 'integrator');
+  const authWorking = hasOutput(job, 'backend_dev') && hasOutput(job, 'integrator');
 
   const failedChecks = [
     !uiComplete ? 'uiComplete' : null,

@@ -765,7 +765,7 @@ export class ApkPipelineService {
 
       if (method === 'GET' && pathname.startsWith('/apk/file/')) {
         const id = pathname.slice('/apk/file/'.length);
-        const filePath = await this.getApkFile(id, reqUrl?.searchParams.get('token'));
+        const filePath = await this.getApkFile(id, reqUrl?.searchParams.get('token') ?? null);
         if (!filePath) return sendJson(res, 403, { error: 'invalid token or file not found' });
         const file = await fs.readFile(filePath);
         res.statusCode = 200;
